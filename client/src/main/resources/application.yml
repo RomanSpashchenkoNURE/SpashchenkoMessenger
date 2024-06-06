@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: client
+  cloud:
+    openfeign:
+      okhttp:
+        enabled: true
