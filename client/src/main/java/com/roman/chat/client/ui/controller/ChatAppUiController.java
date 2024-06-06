@@ -47,7 +47,7 @@ public class ChatAppUiController implements Initializable {
     @FXML
     public Button sendButton;
 
-    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {

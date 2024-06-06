@@ -107,6 +107,10 @@ public class ChatService {
             chatMessageRepository.findAllByChatIdOrderByCreateAt(chatId) : Collections.emptyList();
     }
 
+    public List<ChatMessage> findAllChatMessages(UUID chatId) {
+        return chatMessageRepository.findAllByChatIdOrderByCreateAt(chatId);
+    }
+
     public void connectUser(UUID userId, String sessionId) {
         var chatUser = findUserById(userId);
         entityManager.detach(chatUser);

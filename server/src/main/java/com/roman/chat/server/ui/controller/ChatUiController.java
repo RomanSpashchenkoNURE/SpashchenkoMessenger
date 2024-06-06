@@ -1,10 +1,14 @@
 package com.roman.chat.server.ui.controller;
 
+import static org.apache.commons.lang3.StringUtils.EMPTY;
+
 import com.roman.chat.server.domain.entity.Chat;
+import com.roman.chat.server.domain.entity.ChatMessage;
 import com.roman.chat.server.domain.entity.ChatUser;
 import com.roman.chat.server.domain.event.UserRegisteredEvent;
 import com.roman.chat.server.service.ChatService;
 import java.net.URL;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 import javafx.application.Platform;
@@ -28,12 +32,18 @@ public class ChatUiController implements Initializable {
 
     private ObservableList<ChatUser> allUsers;
     private ObservableList<Chat> selectUserAllChats;
+    private ObservableList<ChatMessage> selectChatMessages;
 
     @FXML
     private ListView<ChatUser> userListView;
 
     @FXML
     private ListView<Chat> userChatListView;
+
+    @FXML
+    public ListView<ChatMessage> userChatMessagesListView;
+
+    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
     @EventListener
     public void handleUserSelectedEvent(UserRegisteredEvent event) {
@@ -60,11 +70,19 @@ public class ChatUiController implements Initializable {
         }
         selectUserAllChats = FXCollections.observableList(selectedUser != null ? chatService.findAllUserChats(selectedUser.getId()) : new ArrayList<>());
         userChatListView.setItems(selectUserAllChats);
+        Chat selectedChat = null;
+        if (!selectUserAllChats.isEmpty()) {
+            selectedChat = selectUserAllChats.getFirst();
+            userChatListView.getSelectionModel().select(selectedChat);
+        }
+        selectChatMessages = FXCollections.observableList(selectedChat != null ? chatService.findAllChatMessages(selectedUser.getId(),selectedChat.getId()) : new ArrayList<>());
+        userChatMessagesListView.setItems(selectChatMessages);
     }
 
     private void applyCustomizations() {
         applyCustomizationsToUserListView();
         applyCustomizationsToUserChatListView();
+        applyCustomizationsToUserChatMessagesListView();
     }
 
     private void applyCustomizationsToUserListView() {
@@ -77,14 +95,8 @@ public class ChatUiController implements Initializable {
                         super.updateItem(item, empty);
                         if (empty || item == null) {
                             setText(null);
-//                            setStyle(EMPTY);
                         } else {
                             setText(item.getUserName());
-//                            if (getIndex() % 2 == 0) {
-//                                setStyle("-fx-alignment: CENTER-LEFT;");
-//                            } else {
-//                                setStyle("-fx-alignment: CENTER-RIGHT;");
-//                            }
                         }
                     }
                 };
@@ -111,6 +123,34 @@ public class ChatUiController implements Initializable {
                 };
             }
         });
+
+        userChatListView.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> onChatSelected(newValue));
+    }
+
+    private void applyCustomizationsToUserChatMessagesListView() {
+        userChatMessagesListView.setCellFactory(new Callback<>() {
+            @Override
+            public ListCell<ChatMessage> call(ListView<ChatMessage> param) {
+                return new ListCell<>() {
+                    @Override
+                    protected void updateItem(ChatMessage item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (empty || item == null) {
+                            setText(null);
+                            setStyle(EMPTY);
+                        } else {
+                            var chatUser = allUsers
+                                    .stream()
+                                    .filter(user -> user.getId().equals(item.getUserId()))
+                                    .findFirst()
+                                    .orElse(null);
+
+                            setText(item.getCreateAt().format(formatter) + " " + (chatUser != null ? chatUser.getUserName() : EMPTY) + "\n" + item.getContent() + "\n ");
+                        }
+                    }
+                };
+            }
+        });
     }
 
     private void onUserSelected(ChatUser selectedUser) {
@@ -123,5 +163,17 @@ public class ChatUiController implements Initializable {
         selectUserAllChats.clear();
         selectUserAllChats.addAll(chatService.findAllUserChats(selectedUser.getId()));
         userChatListView.refresh();
+    }
+
+    private void onChatSelected(Chat selectedChat) {
+        if (selectedChat != null) {
+            loadMessagesForSelectedChat(selectedChat);
+        }
+    }
+
+    private void loadMessagesForSelectedChat(Chat selectedChat) {
+        selectChatMessages.clear();
+        selectChatMessages.addAll(chatService.findAllChatMessages(selectedChat.getId()));
+        userChatMessagesListView.refresh();
     }
 }
